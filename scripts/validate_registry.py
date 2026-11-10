@@ -2,6 +2,7 @@
 """Offline metadata checks for the source registry. Never makes network requests."""
 
 import argparse
+import ipaddress
 import json
 import re
 import sys
@@ -20,7 +21,8 @@ def validate_registry(data):
         raise ValueError("registry: expected an object")
     if set(data) - {"$schema", "schemaVersion", "sources"}:
         raise ValueError("registry: contains unsupported fields")
-    if data.get("schemaVersion") != 1:
+    version = data.get("schemaVersion")
+    if type(version) is not int or version != 1:
         raise ValueError("registry: schemaVersion must be 1")
     sources = data.get("sources")
     if not isinstance(sources, list) or len(sources) > 20:
@@ -45,10 +47,10 @@ def validate_registry(data):
         seen.add(source_id)
 
         kind = source["kind"]
-        if kind not in KINDS:
+        if not isinstance(kind, str) or kind not in KINDS:
             raise ValueError(f"{where}.kind: unsupported source kind")
         fmt = source["format"]
-        if fmt not in FORMATS:
+        if not isinstance(fmt, str) or fmt not in FORMATS:
             raise ValueError(f"{where}.format: unsupported format")
         if kind == "github-raw" and fmt != "sing-box-json":
             raise ValueError(f"{where}.format: github-raw currently requires sing-box-json")
@@ -63,16 +65,23 @@ def validate_registry(data):
         url = source["url"]
         if not isinstance(url, str):
             raise ValueError(f"{where}.url: expected an HTTPS URL")
+        parsed = None
         try:
             parsed = urlsplit(url)
             host = parsed.hostname
         except ValueError:
             host = None
-        if parsed.scheme != "https" or not host or parsed.username or parsed.password or parsed.fragment:
+        if parsed is None or parsed.scheme != "https" or not host or parsed.username or parsed.password or parsed.fragment:
             raise ValueError(f"{where}.url: must be HTTPS without embedded credentials or fragment")
         host = host.lower()
         if host == "localhost" or host.endswith((".localhost", ".local")) or "." not in host:
             raise ValueError(f"{where}.url: local or single-label hosts are not allowed")
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            address = None
+        if address is not None and not address.is_global:
+            raise ValueError(f"{where}.url: non-public IP addresses are not allowed")
 
         if kind == "github-raw":
             if host != "raw.githubusercontent.com":
