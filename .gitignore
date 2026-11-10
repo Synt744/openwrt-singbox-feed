@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+config/sources.local.json
+openwrt/local.config

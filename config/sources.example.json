@@ -1,0 +1,16 @@
+{
+  "$schema": "./sources.schema.json",
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "sample-github-pinned",
+      "kind": "github-raw",
+      "url": "https://raw.githubusercontent.com/example-owner/example-repo/0000000000000000000000000000000000000000/sing-box.json",
+      "revision": "0000000000000000000000000000000000000000",
+      "format": "sing-box-json",
+      "enabled": false,
+      "trust": "untrusted",
+      "maxBytes": 262144
+    }
+  ]
+}
